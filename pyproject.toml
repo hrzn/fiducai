@@ -1,0 +1,30 @@
+[project]
+name = "fiducai"
+version = "0.1.0"
+description = "Open-source agent skills for Swiss tax returns and fiduciary chores"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+
+# Fiducai ships no installable package on purpose: each skill directory is
+# self-contained and stdlib-only, so it can simply be copied into a harness.
+# This file exists to pin the developer tooling.
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.ruff]
+line-length = 92
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
+ignore = [
+    # The user-facing strings are French; ruff's ambiguous-unicode rules fire on
+    # perfectly ordinary typography (non-breaking spaces, curly quotes).
+    "RUF001",
+    "RUF002",
+    "RUF003",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

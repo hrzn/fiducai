@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  no-pii:
+    # Runs first and on its own: if someone's real tax data is in the diff, that
+    # is the only thing anybody needs to know about this pull request.
+    name: No personal data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: python3 scripts/check_no_pii.py
+
+  test:
+    # Deliberately uses a plain interpreter and pip, not uv: this job is what
+    # proves the skills stay dependency-free and work on a bare Python.
+    name: Tests (bare Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install pytest
+      - run: python -m pytest -q
+
+  uv:
+    # The other supported path: no system Python assumed at all. uv provisions
+    # the interpreter from the script's PEP 723 header.
+    name: Run via uv
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v9
+      - name: Script runs standalone through its PEP 723 header
+        run: >
+          uv run --script skills/vaud-tax-return/scripts/vaudtax.py
+          check tests/fixtures/exemple.vaudtax --year 2025
+      - name: Dev environment resolves from the lockfile
+        run: uv sync --group dev
+      - run: uv run pytest -q
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v9
+      # Pinned by uv.lock, so contributors and CI never disagree about which
+      # ruff rules apply.
+      - run: uv sync --group dev
+      - run: uv run ruff check .
+
+  skills:
+    name: Skill metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: python3 scripts/check_skills.py

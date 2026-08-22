@@ -1,0 +1,23 @@
+#!/bin/sh
+# Fiducai pre-commit hook.
+#
+# Enable it once, from the repository root:
+#
+#     git config core.hooksPath scripts/git-hooks
+#
+# It reduces the probability of committing personal tax data.
+
+set -e
+
+repo_root=$(git rev-parse --show-toplevel)
+
+python3 "$repo_root/scripts/check_no_pii.py" --staged || {
+    echo
+    echo "Commit interrompu. Rien n'est perdu : corrigez, puis 'git add' à nouveau."
+    exit 1
+}
+
+python3 "$repo_root/scripts/check_skills.py" >/dev/null || {
+    python3 "$repo_root/scripts/check_skills.py"
+    exit 1
+}

@@ -1,0 +1,66 @@
+# ---------------------------------------------------------------------------
+# Tax data must never be committed.
+#
+# Fiducai is a public repository. Everything below is the kind of file that
+# carries real names, AVS numbers, IBANs and amounts. If you need an example
+# for a test, build a synthetic one under tests/fixtures/ instead.
+#
+# scripts/check_no_pii.py enforces a second line of defence in CI.
+# ---------------------------------------------------------------------------
+
+# Personal profile — the whole point of it is that it stays on your machine.
+profil-fiscal.md
+profil_fiscal.md
+**/profil-fiscal.md
+
+# Cantonal tax return files, anywhere except the curated fixtures.
+*.vaudtax
+*.vstax
+*.getax
+*.tax
+!tests/fixtures/**/*.vaudtax
+
+# Supporting documents.
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.tif
+*.tiff
+*.zip
+*.csv
+*.xlsx
+*.xls
+!docs/**/*.png
+
+# Folders people typically drop their papers into.
+documents/
+dossier/
+justificatifs/
+rapport/
+declaration/
+declarations/
+
+# Unpacked working copies.
+*.vaudtax.bak
+.fiducai-work/
+
+# ---------------------------------------------------------------------------
+# Ordinary housekeeping
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.mypy_cache/
+*.egg-info/
+
+.DS_Store
+.idea/
+.vscode/
+
+# Agent harness local state
+.claude/
+!.claude/settings.json
