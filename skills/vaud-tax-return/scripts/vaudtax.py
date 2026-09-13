@@ -461,16 +461,27 @@ def collect_checks(path: Path):
                              f"le statut (indépendant sans 2e pilier ?)")
 
     # --- mortgage interest must appear in two places -------------------------- #
-    immo_interets = [i.findtext(NSB + "interetsPassifsImmeuble") for i in immeubles]
-    for elem in sections(root, "interetsDettes"):
-        if text_of(elem, "isGageImmobGarantie") != "true":
-            continue
-        interets = elem.findtext(NSB + "interets")
-        if interets and interets not in [v for v in immo_interets if v]:
+    # A property carries a single interest figure, while a mortgage is often
+    # split into several tranches, each on its own interetsDettes line with its
+    # own account number. Comparing the *totals* catches the real omission —
+    # interest entered on one side only — without flagging that split, which is
+    # the normal situation.
+    immo_interets = [float(v) for v in
+                     (i.findtext(NSB + "interetsPassifsImmeuble") for i in immeubles) if v]
+    gagees = [e for e in sections(root, "interetsDettes")
+              if text_of(e, "isGageImmobGarantie") == "true"]
+    dettes_interets = [float(v) for v in
+                       (e.findtext(NSB + "interets") for e in gagees) if v]
+    if dettes_interets:
+        total_dettes, total_immo = sum(dettes_interets), sum(immo_interets)
+        # Each tranche is rounded to the franc on its own, so a one-franc
+        # tolerance per line avoids flagging a plain rounding difference.
+        if abs(total_dettes - total_immo) > len(dettes_interets):
             _problem(problems, "error", "interets-hypothecaires",
-                     f"intérêts hypothécaires {interets} déclarés dans interetsDettes "
-                     f"mais absents de biensImmobiliers/interetsPassifsImmeuble "
-                     f"(valeurs vues : {immo_interets})")
+                     f"intérêts hypothécaires : {chf(total_dettes)} au total dans "
+                     f"interetsDettes ({len(dettes_interets)} ligne(s)) contre "
+                     f"{chf(total_immo)} dans biensImmobiliers/interetsPassifsImmeuble "
+                     f"— les deux rubriques doivent porter le même total")
 
     # --- duplicate trackingIndex within one element type ---------------------- #
     for tag in {local(c.tag) for c in root}:

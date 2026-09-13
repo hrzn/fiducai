@@ -176,6 +176,49 @@ def test_mortgage_interest_must_appear_in_both_places(vt, make_variant):
     assert "interets-hypothecaires" in codes(problems)
 
 
+# One loan split into two tranches, on two separate interetsDettes lines.
+_TRANCHE_SPLIT = ("""        <interets>4200</interets>
+        <detteMontant>280000</detteMontant>
+    </interetsDettes>""",
+                  """        <interets>3000</interets>
+        <detteMontant>200000</detteMontant>
+    </interetsDettes>
+    <interetsDettes>
+        <trackingIndex>2</trackingIndex>
+        <contribuable>CTB1_CTB2</contribuable>
+        <isGageImmobGarantie>true</isGageImmobGarantie>
+        <creancier>Banque Exemple</creancier>
+        <numCompte>20-000000-4 tranche 2</numCompte>
+        <interets>1200</interets>
+        <detteMontant>80000</detteMontant>
+    </interetsDettes>""")
+
+
+def test_mortgage_split_into_tranches_is_not_flagged(vt, make_variant):
+    """A property carries the sum of the tranches: that is not a defect."""
+    variant = make_variant([_TRANCHE_SPLIT])
+    _, _, problems = vt.collect_checks(variant)
+    assert "interets-hypothecaires" not in codes(problems)
+
+
+def test_mortgage_tranche_rounding_is_tolerated(vt, make_variant):
+    """3000 + 1200 against 4201 on the property: rounding, not an omission."""
+    variant = make_variant([_TRANCHE_SPLIT,
+                            ("<interetsPassifsImmeuble>4200</interetsPassifsImmeuble>",
+                             "<interetsPassifsImmeuble>4201</interetsPassifsImmeuble>")])
+    _, _, problems = vt.collect_checks(variant)
+    assert "interets-hypothecaires" not in codes(problems)
+
+
+def test_mortgage_missing_tranche_still_detected(vt, make_variant):
+    """A tranche left off the property is still caught despite the split."""
+    variant = make_variant([_TRANCHE_SPLIT,
+                            ("<interetsPassifsImmeuble>4200</interetsPassifsImmeuble>",
+                             "<interetsPassifsImmeuble>3000</interetsPassifsImmeuble>")])
+    _, _, problems = vt.collect_checks(variant)
+    assert "interets-hypothecaires" in codes(problems)
+
+
 def test_duplicate_tracking_index_detected(vt, make_variant):
     variant = make_variant([("<trackingIndex>2</trackingIndex>\n        "
                              "<employeur>Autre Employeur Exemple</employeur>",
